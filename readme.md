@@ -2,7 +2,7 @@
 
 This [Express](https://expressjs.com/) app is a KPMG Backend product app, it can be run locally on its own.
 
-### Prerequisites
+## Prerequisites
 
 To package and run this application with node, you'll need to:
 
@@ -13,7 +13,7 @@ To package and run this application with node, you'll need to:
       $ cd KPMG-Backend
       
 
-### Setup for First-time Users
+## Setup for First-time Users
 
 * npm i to install all the packages listed in the package.json file
 * make a new file and name it .env
@@ -21,15 +21,15 @@ To package and run this application with node, you'll need to:
 * make sure env variables are set properly
 * npm start to run the server
 
-### Swagger Documentation
+## Swagger Documentation
 
 Coming Soon ...
 
-#### Architecture Diagram: 
+## Architecture Diagram: 
 
-file:///C:/Users/twofa/Downloads/KPMG%20-%20user%20flow%20(1).pdf
+file:///C:/Users/twofa/Downloads/KPMG%20-%20user%20flow%20(1).pdf 
 
-#### Vercel Link: 
+## Vercel Link: 
 
 Coming Soon ...
 
