@@ -1,0 +1,30 @@
+{
+  "name": "KPMG-backend",
+  "version": "1.0",
+  "description": "KPMG Backend",
+  "author": "Muhammad Hammad Mubeen",
+  "license": "ISC",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": "20.16.0",
+    "npm": "10.8.1"
+  },
+  "devDependencies": {
+    "prettier": "^2.7.1"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.2",
+    "express": "^4.17.3",
+    "joi": "^17.6.0",
+    "jsonwebtoken": "^9.0.2",
+    "knex": "^3.1.0",
+    "lodash.clonedeep": "^4.5.0",
+    "uuid": "^8.3.2",
+    "winston": "^3.7.2",
+    "pg": "^8.8.0",
+    "@magic-sdk/admin": "^2.4.1"
+  }
+}
