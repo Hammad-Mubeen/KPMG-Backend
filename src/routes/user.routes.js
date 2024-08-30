@@ -12,6 +12,6 @@ router
 
   .post("/onboarding", validate(userValidation.onboarding), userController.onboarding)
   .get("/", auth, userController.getUser)
-  .post("/convertDocxToPdf", [auth, multer.singleFile("file")], userController.convertDocxToPdf);
+  .post("/convertDocumentToPdf", [auth, multer.singleFile("file")], userController.convertDocumentToPdf);
 
 module.exports = router;

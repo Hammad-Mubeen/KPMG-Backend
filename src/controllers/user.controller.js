@@ -20,8 +20,8 @@ module.exports = {
         next(err);
       });
   },
-  convertDocxToPdf: function (req, res, next) {
-    UserService.convertDocxToPdf(req.file, req, res)
+  convertDocumentToPdf: function (req, res, next) {
+    UserService.convertDocumentToPdf(req.file, req, res)
       .then((resp) => {
         // Set the response headers and pipe the PDF stream
         res.setHeader('Content-Disposition', 'attachment; filename="converted.pdf"');

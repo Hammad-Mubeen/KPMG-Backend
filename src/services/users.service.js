@@ -73,7 +73,7 @@ module.exports = {
       throw err;
     }
   },
-  convertDocxToPdf: async (file) => {
+  convertDocumentToPdf: async (file) => {
     try {
 
       if (!file) {
@@ -84,9 +84,9 @@ module.exports = {
           }
         };
       }
-      // Convert DOCX to plain text using mammoth
+      
       const result = await mammoth.extractRawText({ buffer: file.buffer });
-      console.log("DOCX to plain text: ",result);
+      console.log("Document to plain text: ",result);
 
       // Create a PDF document
       const pdfDoc = new PDFDocument();
@@ -105,7 +105,7 @@ module.exports = {
   },
   getUser: async ( {user} ) => {
     try {
-      
+
       let userData = await DB(UserModel.table).where({ email: user.email });
       console.log("userData: ",userData);
 
