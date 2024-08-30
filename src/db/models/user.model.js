@@ -5,7 +5,8 @@ module.exports = {
   whitelist: (data) =>
     whitelist(data, [
       "email",
-      "vaultAddress",
-      "is_white_listed"
+      "walletAddress",
+      "firstName",
+      "lastName"
     ]),
 };

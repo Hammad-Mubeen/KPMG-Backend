@@ -2,6 +2,9 @@ require("dotenv").config();
 const { Magic } = require('@magic-sdk/admin');
 const jwt = require("jsonwebtoken");
 const DB = require("../db");
+const mammoth = require('mammoth');
+const PDFDocument = require('pdfkit');
+const { PassThrough } = require('stream');
 
 const UserModel = require("../db/models/user.model");
 
@@ -10,9 +13,18 @@ const Logger = require("../utils/logger");
 
 module.exports = {
 
-  onboarding: async ({ token }) => {
+  onboarding: async ({ walletAddress, token }) => {
     try {
 
+      if(!walletAddress)
+      {
+        return {
+          code: HTTP.NotFound,
+          body: {
+            message: "walletAddress have not been passed."
+          }
+        };
+      }
       if(!token)
       {
           return {
@@ -22,6 +34,7 @@ module.exports = {
             }
           };
       }
+      console.log("walletAddress: ",walletAddress);
       console.log("token: ",token);
       
       const magic = await Magic.init(process.env.MAGIC_SECRET_KEY);
@@ -40,6 +53,7 @@ module.exports = {
         const newUser = await DB(UserModel.table)
         .insert({
           email: user.email,
+          walletAddress: walletAddress
         })
         .returning("*");
         console.log("newUser: ",newUser);
@@ -59,10 +73,42 @@ module.exports = {
       throw err;
     }
   },
-  getUserWhiteListStatus: async ( {user} ) => {
+  convertDocxToPdf: async (file) => {
     try {
+
+      if (!file) {
+        return {
+          code: HTTP.BadRequest,
+          body: {
+            message: "No file uploaded."
+          }
+        };
+      }
+      // Convert DOCX to plain text using mammoth
+      const result = await mammoth.extractRawText({ buffer: file.buffer });
+      console.log("DOCX to plain text: ",result);
+
+      // Create a PDF document
+      const pdfDoc = new PDFDocument();
+      const pdfStream = new PassThrough();
+
+      pdfDoc.pipe(pdfStream);
+      pdfDoc.text(result.value);
+      pdfDoc.end();
+
+      return pdfStream;
+
+    } catch (err) {
+      Logger.error("users.service -> convertDocxToPdf \n", err);
+      throw err;
+    }
+  },
+  getUser: async ( {user} ) => {
+    try {
+      
       let userData = await DB(UserModel.table).where({ email: user.email });
       console.log("userData: ",userData);
+
       if(userData.length == 0)
       {
         return {
@@ -72,13 +118,15 @@ module.exports = {
           }
         };
       }
-      let whiteListedStatus = userData[0].is_white_listed;
+
       return {
         code: HTTP.Success,
-        body: {whiteListedStatus},
+        body: {
+          user:userData[0]
+        }
       };
     } catch (err) {
-      Logger.error("user.service -> getUserWhiteListStatus \n", err);
+      Logger.error("user.service -> getUser \n", err);
       throw err;
     }
   },
