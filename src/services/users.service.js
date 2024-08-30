@@ -4,8 +4,9 @@ const jwt = require("jsonwebtoken");
 const DB = require("../db");
 const mammoth = require('mammoth');
 const PDFDocument = require('pdfkit');
-const { PassThrough } = require('stream');
-
+const { Readable, PassThrough } = require('stream');
+const { load } = require('@pspdfkit/nodejs');
+const fs = require ('fs');
 const UserModel = require("../db/models/user.model");
 
 const HTTP = require("../utils/httpCodes");
@@ -13,18 +14,9 @@ const Logger = require("../utils/logger");
 
 module.exports = {
 
-  onboarding: async ({ walletAddress, token }) => {
+  onboarding: async ({ token }) => {
     try {
 
-      if(!walletAddress)
-      {
-        return {
-          code: HTTP.NotFound,
-          body: {
-            message: "walletAddress have not been passed."
-          }
-        };
-      }
       if(!token)
       {
           return {
@@ -34,7 +26,6 @@ module.exports = {
             }
           };
       }
-      console.log("walletAddress: ",walletAddress);
       console.log("token: ",token);
       
       const magic = await Magic.init(process.env.MAGIC_SECRET_KEY);
@@ -53,7 +44,7 @@ module.exports = {
         const newUser = await DB(UserModel.table)
         .insert({
           email: user.email,
-          walletAddress: walletAddress
+          walletAddress: user.publicAddress
         })
         .returning("*");
         console.log("newUser: ",newUser);
@@ -62,7 +53,11 @@ module.exports = {
         code: HTTP.Success,
         body: {
           message: "DID Token Verified.",
-          access_token: jwt.sign({ email: user.email }, process.env.AUTH_SECRET, {
+          access_token: jwt.sign({ 
+            email: user.email,
+            issuer :user.issuer,
+            publicAddress :user.publicAddress
+          }, process.env.AUTH_SECRET, {
             expiresIn: "7d",
           }),
         },
@@ -75,7 +70,7 @@ module.exports = {
   },
   convertDocumentToPdf: async (file) => {
     try {
-
+      //console.log("file: ",file);
       if (!file) {
         return {
           code: HTTP.BadRequest,
@@ -85,18 +80,26 @@ module.exports = {
         };
       }
       
-      const result = await mammoth.extractRawText({ buffer: file.buffer });
-      console.log("Document to plain text: ",result);
+      //const result = await mammoth.convertToHtml({ buffer: file.buffer });
 
       // Create a PDF document
-      const pdfDoc = new PDFDocument();
-      const pdfStream = new PassThrough();
+      //const pdfDoc = new PDFDocument();
+      //const pdfStream = new PassThrough();
 
-      pdfDoc.pipe(pdfStream);
-      pdfDoc.text(result.value);
-      pdfDoc.end();
+      //pdfStream.pipe(file.buffer);
+      //pdfDoc.pipe(pdfStream);
+      //pdfDoc.addContent(file.buffer);
+      //pdfDoc.end();
+      
+      const docx = fs.readFileSync('sample.docx');
+      console.log(docx);
+      const instance = await load({
+        document: docx,
+      });
+      const pdfBuffer = await instance.exportPDF();
 
-      return pdfStream;
+      const stream = Readable.from(pdfBuffer);
+      return stream;
 
     } catch (err) {
       Logger.error("users.service -> convertDocxToPdf \n", err);
