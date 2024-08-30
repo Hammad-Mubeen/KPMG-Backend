@@ -21,7 +21,7 @@ module.exports = {
       });
   },
   convertDocumentToPdf: function (req, res, next) {
-    UserService.convertDocumentToPdf(req.file, req, res)
+    UserService.convertDocumentToPdf(req.file, req)
       .then((resp) => {
         // Set the response headers and pipe the PDF stream
         res.setHeader('Content-Disposition', 'attachment; filename="converted.pdf"');
@@ -32,4 +32,13 @@ module.exports = {
         next(err);
       });
   },
+  uploadDocToCreateHash: function (req, res, next) {
+    UserService.uploadDocToCreateHash(req.file, req)
+      .then((resp) => {
+        return Response.Send.Raw(res, resp.code, resp.body);
+      })
+      .catch((err) => {
+        next(err);
+      });
+  }
 };

@@ -2,11 +2,10 @@ require("dotenv").config();
 const { Magic } = require('@magic-sdk/admin');
 const jwt = require("jsonwebtoken");
 const DB = require("../db");
-const mammoth = require('mammoth');
-const PDFDocument = require('pdfkit');
-const { Readable, PassThrough } = require('stream');
 const { load } = require('@pspdfkit/nodejs');
-const fs = require ('fs');
+const { Readable } = require("stream");
+const { createHash } = require("crypto");
+
 const UserModel = require("../db/models/user.model");
 
 const HTTP = require("../utils/httpCodes");
@@ -80,24 +79,13 @@ module.exports = {
         };
       }
       
-      //const result = await mammoth.convertToHtml({ buffer: file.buffer });
+      console.log("file biffer: ",file.buffer);
 
-      // Create a PDF document
-      //const pdfDoc = new PDFDocument();
-      //const pdfStream = new PassThrough();
-
-      //pdfStream.pipe(file.buffer);
-      //pdfDoc.pipe(pdfStream);
-      //pdfDoc.addContent(file.buffer);
-      //pdfDoc.end();
-      
-      const docx = fs.readFileSync('sample.docx');
-      console.log(docx);
       const instance = await load({
-        document: docx,
+        document: file.buffer,
       });
       const pdfBuffer = await instance.exportPDF();
-
+ 
       const stream = Readable.from(pdfBuffer);
       return stream;
 
@@ -130,6 +118,29 @@ module.exports = {
       };
     } catch (err) {
       Logger.error("user.service -> getUser \n", err);
+      throw err;
+    }
+  },
+  uploadDocToCreateHash: async ( file ) => {
+    try {
+      if (!file) {
+        return {
+          code: HTTP.BadRequest,
+          body: {
+            message: "No file uploaded."
+          }
+        };
+      }
+      var hash = createHash('sha256').update(file.buffer).digest('hex');
+      return {
+        code: HTTP.Success,
+        body: {
+          hash:hash
+        }
+      };
+
+    } catch (err) {
+      Logger.error("user.service -> uploadDocToCreateHash \n", err);
       throw err;
     }
   },
