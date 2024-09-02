@@ -144,4 +144,27 @@ module.exports = {
       throw err;
     }
   },
+  uploadTextToCreateHash: async ( {text} ) => {
+    try {
+      if (!text) {
+        return {
+          code: HTTP.BadRequest,
+          body: {
+            message: "text have not been passed."
+          }
+        };
+      }
+      var hash = createHash('sha256').update(text).digest('hex');
+      return {
+        code: HTTP.Success,
+        body: {
+          hash: hash
+        }
+      };
+
+    } catch (err) {
+      Logger.error("user.service -> uploadTextToCreateHash \n", err);
+      throw err;
+    }
+  },
 };

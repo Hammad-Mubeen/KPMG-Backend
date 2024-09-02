@@ -40,5 +40,14 @@ module.exports = {
       .catch((err) => {
         next(err);
       });
+  },
+  uploadTextToCreateHash: function (req, res, next) {
+    UserService.uploadTextToCreateHash(req.body,req)
+      .then((resp) => {
+        return Response.Send.Raw(res, resp.code, resp.body);
+      })
+      .catch((err) => {
+        next(err);
+      });
   }
 };

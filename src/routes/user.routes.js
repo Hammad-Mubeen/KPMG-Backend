@@ -13,6 +13,7 @@ router
   .post("/onboarding", validate(userValidation.onboarding), userController.onboarding)
   .get("/", auth, userController.getUser)
   .post("/convertDocumentToPdf", [auth, multer.singleFile("file")], userController.convertDocumentToPdf)
-  .post("/uploadDocToCreateHash", [auth, multer.singleFile("file")], userController.uploadDocToCreateHash);
+  .post("/uploadDocToCreateHash", [auth, multer.singleFile("file")], userController.uploadDocToCreateHash)
+  .post("/uploadTextToCreateHash", [auth, validate(userValidation.uploadTextToCreateHash)], userController.uploadTextToCreateHash);
 
 module.exports = router;
