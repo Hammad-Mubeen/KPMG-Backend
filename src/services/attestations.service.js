@@ -2,6 +2,7 @@ require("dotenv").config();
 const DB = require("../db");
 const { EAS,SchemaEncoder } = require("@ethereum-attestation-service/eas-sdk");
 var { ethers }  = require("ethers");
+const moment = require('moment');
 
 const AttestationModel = require("../db/models/attestation.model");
 
@@ -91,8 +92,8 @@ module.exports = {
         text: text,
         age: JSON.stringify(timestamp),
         verifyOnEAS: easAttestationURL  + newAttestationUID,
-        dateCreated: JSON.stringify(timestamp),
-        lastModified: JSON.stringify(timestamp),
+        dateCreated: moment.unix(timestamp).format('MMM D, YYYY'),
+        lastModified: moment.unix(timestamp).format('MMM D, YYYY'),
         //world id verification
         merkleRoot: merkle_root,
         nullifierHash: nullifier_hash,
@@ -191,8 +192,8 @@ module.exports = {
         text: null,
         age: JSON.stringify(timestamp),
         verifyOnEAS: easAttestationURL  + newAttestationUID,
-        dateCreated: JSON.stringify(timestamp),
-        lastModified: JSON.stringify(timestamp),
+        dateCreated: moment.unix(timestamp).format('MMM D, YYYY'),
+        lastModified: moment.unix(timestamp).format('MMM D, YYYY'),
         //world id verification
         merkleRoot: merkle_root,
         nullifierHash: nullifier_hash,
@@ -218,8 +219,7 @@ module.exports = {
   myAttestations: async ( { user } ) => {
     try {
       let attestationData = await DB(AttestationModel.table).where({ email: user.email });
-      console.log("attestationData: ",attestationData);
-
+      
       if(attestationData.length == 0)
       {
         return {
@@ -229,6 +229,9 @@ module.exports = {
           }
         };
       }
+      attestationData = attestationData.reverse();
+      console.log("attestationData: ",attestationData);
+
       return {
         code: HTTP.Success,
         body: {
@@ -245,7 +248,6 @@ module.exports = {
   allAttestations: async ( { user } ) => {
     try {
       let attestationData = await DB(AttestationModel.table);
-      console.log("attestationData: ",attestationData);
 
       if(attestationData.length == 0)
       {
@@ -256,6 +258,9 @@ module.exports = {
           }
         };
       }
+      attestationData = attestationData.reverse();
+      console.log("attestationData: ",attestationData);
+
       return {
         code: HTTP.Success,
         body: {
@@ -272,7 +277,6 @@ module.exports = {
   KPMGScan: async ( { user } ) => {
     try {
       let attestationData = await DB(AttestationModel.table).where({ schema: schemaUID });
-      console.log("attestationData: ",attestationData);
 
       if(attestationData.length == 0)
       {
@@ -283,6 +287,9 @@ module.exports = {
           }
         };
       }
+      attestationData = attestationData.reverse();
+      console.log("attestationData: ",attestationData);
+      
       return {
         code: HTTP.Success,
         body: {
