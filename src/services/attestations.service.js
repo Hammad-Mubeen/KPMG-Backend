@@ -11,6 +11,7 @@ const Logger = require("../utils/logger");
 const EASContractAddress = process.env.EASContractAddress; // Sepolia v0.26
 const schemaUID = process.env.schemaUID;
 const privateKey = process.env.privateKey;
+const easAttestationURL = process.env.EASAttestationURL;
 
 module.exports = {
 
@@ -63,6 +64,7 @@ module.exports = {
       verification_level = decodedData[9].value.value;
 
       let timestamp = Math.floor(Date.now() / 1000);
+
       // creating record of the text attestation
       const newAttestation = await DB(AttestationModel.table)
       .insert({
@@ -88,7 +90,7 @@ module.exports = {
         textHash: text_hash,
         text: text,
         age: JSON.stringify(timestamp),
-        verifyOnEAS: null,
+        verifyOnEAS: easAttestationURL  + newAttestationUID,
         dateCreated: JSON.stringify(timestamp),
         lastModified: JSON.stringify(timestamp),
         //world id verification
@@ -103,7 +105,8 @@ module.exports = {
       return {
         code: HTTP.Success,
         body: {
-          message: "Text Attestation Successfully attested."
+          message: "Text Attestation Successfully attested.",
+          UID: newAttestationUID
         }
       };
 
@@ -114,29 +117,30 @@ module.exports = {
   },
   addNewDocAttestation: async ( file, { documentType, size, encodedData, signature }, { user } ) => {
     try {
+ 
+      const senderProvider = new ethers.JsonRpcProvider("https://eth-sepolia.g.alchemy.com/v2/h9RWCx3Aq_mCeuDth1kGZB3MJixkoQhC");
+      const sender = new ethers.Wallet(privateKey, senderProvider);
 
-      const provider = ethers.getDefaultProvider(
-        "sepolia"
-      );
-      const signer = new ethers.Wallet(privateKey, provider);
-      
       const eas = new EAS(EASContractAddress);
-      
-      eas.connect(signer);
+
+      eas.connect(sender);
+
+      //decoding data from encoded Data
+      const schemaEncoder = new SchemaEncoder("string attestation_type,string title,string description,string[] tags,bytes32 document_hash,bytes32 text_hash,bytes merkle_root,bytes nullifier_hash,bytes proof,bytes verification_level");
       
       //attesting delegate attestation
       const transaction = await eas.attestByDelegation({
         schema: schemaUID,
         data: {
-          recipient: user.publicAddress,
-          expirationTime: 0n,
+          recipient: user.walletAddress,
+          expirationTime: BigInt(0),
           revocable: true,
           refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
           data: encodedData
         },
         signature: signature,
-        attester: await signer.getAddress(),
-        deadline: 0n
+        attester: user.walletAddress,
+        deadline: BigInt(0)
       });
       
       const newAttestationUID = await transaction.wait();
@@ -145,9 +149,6 @@ module.exports = {
       
       console.log('Transaction receipt:', transaction.receipt);
 
-      //decoding data from encoded Data
-      const schemaEncoder = new SchemaEncoder("string attestation_type,string title,string description,string[] tags,bytes32 document_hash,bytes32 text_hash,bytes merkle_root,bytes nullifier_hash,bytes proof,bytes verification_level");
-      
       const decodedData = schemaEncoder.decodeData(encodedData);
       console.log("decoded Data: ",decodedData);
 
@@ -162,16 +163,18 @@ module.exports = {
       proof = decodedData[8].value.value,
       verification_level = decodedData[9].value.value;
 
+      let timestamp = Math.floor(Date.now() / 1000);
+
       // creating record of the text attestation
       const newAttestation = await DB(AttestationModel.table)
       .insert({
         UID: newAttestationUID,
         schema: schemaUID,
         email: user.email,
-        creator: user.publicAddress,
-        recipient: user.publicAddress,
-        time: timestamp,
-        expirationTime: 0,
+        creator: user.walletAddress,
+        recipient: user.walletAddress,
+        time: JSON.stringify(timestamp),
+        expirationTime: JSON.stringify(0),
         revocable: true,
         refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
         name: title,
@@ -181,15 +184,15 @@ module.exports = {
         attestationType: attestation_type,
         type: "OnChain",
         docHash: document_hash,
-        document: file.buffer,
+        document: null,
         documentType: documentType,
         version: 1,
         textHash: text_hash,
         text: null,
-        age: timestamp,
-        verifyOnEAS: null,
-        dateCreated: timestamp,
-        lastModified: timestamp,
+        age: JSON.stringify(timestamp),
+        verifyOnEAS: easAttestationURL  + newAttestationUID,
+        dateCreated: JSON.stringify(timestamp),
+        lastModified: JSON.stringify(timestamp),
         //world id verification
         merkleRoot: merkle_root,
         nullifierHash: nullifier_hash,
@@ -202,7 +205,8 @@ module.exports = {
       return {
         code: HTTP.Success,
         body: {
-          message: "Doc Attestation Successfully attested."
+          message: "Doc Attestation Successfully attested.",
+          UID: newAttestationUID
         }
       };
 
