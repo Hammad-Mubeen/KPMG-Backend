@@ -1,0 +1,312 @@
+require("dotenv").config();
+const DB = require("../db");
+const { EAS,SchemaEncoder } = require("@ethereum-attestation-service/eas-sdk");
+var { ethers }  = require("ethers");
+
+const AttestationModel = require("../db/models/attestation.model");
+
+const HTTP = require("../utils/httpCodes");
+const Logger = require("../utils/logger");
+
+const EASContractAddress = process.env.EASContractAddress; // Sepolia v0.26
+const schemaUID = process.env.schemaUID;
+const privateKey = process.env.privateKey;
+const timestamp = BigInt(Math.floor(Date.now() / 1000));
+
+module.exports = {
+
+  addNewTextAttestation: async ( { text, encodedData, signature }, { user } ) => {
+    try {
+
+      const provider = ethers.getDefaultProvider(
+        "sepolia"
+      );
+      const signer = new ethers.Wallet(privateKey, provider);
+      
+      const eas = new EAS(EASContractAddress);
+      
+      eas.connect(signer);
+      
+      //attesting delegate attestation
+      const transaction = await eas.attestByDelegation({
+        schema: schemaUID,
+        data: {
+          recipient: user.publicAddress,
+          expirationTime: 0n,
+          revocable: true,
+          refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
+          data: encodedData
+        },
+        signature: signature,
+        attester: await signer.getAddress(),
+        deadline: 0n
+      });
+      
+      const newAttestationUID = await transaction.wait();
+      
+      console.log('New attestation UID:', newAttestationUID);
+      
+      console.log('Transaction receipt:', transaction.receipt);
+
+      //decoding data from encoded Data
+      const schemaEncoder = new SchemaEncoder("string attestation_type,string title,string description,string[] tags,bytes32 document_hash,bytes32 text_hash,bytes merkle_root,bytes nullifier_hash,bytes proof,bytes verification_level");
+      
+      const decodedData = schemaEncoder.decodeData(encodedData);
+      console.log("decoded Data: ",decodedData);
+
+      const attestation_type = decodedData[0].value.value,
+      title = decodedData[1].value.value,
+      description = decodedData[2].value.value,
+      tags = decodedData[3].value.value,
+      document_hash= decodedData[4].value.value,
+      text_hash = decodedData[5].value.value,
+      merkle_root = decodedData[6].value.value,
+      nullifier_hash = decodedData[7].value.value,
+      proof = decodedData[8].value.value,
+      verification_level = decodedData[9].value.value;
+
+      // creating record of the text attestation
+      const newAttestation = await DB(AttestationModel.table)
+      .insert({
+        UID: newAttestationUID,
+        schema: schemaUID,
+        email: user.email,
+        creator: user.publicAddress,
+        recipient: user.publicAddress,
+        time: timestamp,
+        expirationTime: 0,
+        revocable: true,
+        refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
+        name: title,
+        description: description,
+        tags: tags,
+        size: 0,
+        attestationType: attestation_type,
+        type: "OnChain",
+        docHash: document_hash,
+        document: null,
+        documentType: null,
+        version: 0,
+        textHash: text_hash,
+        text: text,
+        age: timestamp,
+        verifyOnEAS: null,
+        dateCreated: timestamp,
+        lastModified: timestamp,
+        //world id verification
+        merkleRoot: merkle_root,
+        nullifierHash: nullifier_hash,
+        proof: proof,
+        verificationLevel: verification_level
+      })
+      .returning("*");
+
+      console.log("New text Attestation Recorded in DB: ",newAttestation);
+      return {
+        code: HTTP.Success,
+        body: {
+          message: "Text Attestation Successfully attested."
+        }
+      };
+
+    } catch (err) {
+      Logger.error("user.service ->  addNewTextAttestation \n", err);
+      throw err;
+    }
+  },
+  addNewDocAttestation: async ( file, { documentType, size, encodedData, signature }, { user } ) => {
+    try {
+
+      const provider = ethers.getDefaultProvider(
+        "sepolia"
+      );
+      const signer = new ethers.Wallet(privateKey, provider);
+      
+      const eas = new EAS(EASContractAddress);
+      
+      eas.connect(signer);
+      
+      //attesting delegate attestation
+      const transaction = await eas.attestByDelegation({
+        schema: schemaUID,
+        data: {
+          recipient: user.publicAddress,
+          expirationTime: 0n,
+          revocable: true,
+          refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
+          data: encodedData
+        },
+        signature: signature,
+        attester: await signer.getAddress(),
+        deadline: 0n
+      });
+      
+      const newAttestationUID = await transaction.wait();
+      
+      console.log('New attestation UID:', newAttestationUID);
+      
+      console.log('Transaction receipt:', transaction.receipt);
+
+      //decoding data from encoded Data
+      const schemaEncoder = new SchemaEncoder("string attestation_type,string title,string description,string[] tags,bytes32 document_hash,bytes32 text_hash,bytes merkle_root,bytes nullifier_hash,bytes proof,bytes verification_level");
+      
+      const decodedData = schemaEncoder.decodeData(encodedData);
+      console.log("decoded Data: ",decodedData);
+
+      const attestation_type = decodedData[0].value.value,
+      title = decodedData[1].value.value,
+      description = decodedData[2].value.value,
+      tags = decodedData[3].value.value,
+      document_hash= decodedData[4].value.value,
+      text_hash = decodedData[5].value.value,
+      merkle_root = decodedData[6].value.value,
+      nullifier_hash = decodedData[7].value.value,
+      proof = decodedData[8].value.value,
+      verification_level = decodedData[9].value.value;
+
+      // creating record of the text attestation
+      const newAttestation = await DB(AttestationModel.table)
+      .insert({
+        UID: newAttestationUID,
+        schema: schemaUID,
+        email: user.email,
+        creator: user.publicAddress,
+        recipient: user.publicAddress,
+        time: timestamp,
+        expirationTime: 0,
+        revocable: true,
+        refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
+        name: title,
+        description: description,
+        tags: tags,
+        size: size,
+        attestationType: attestation_type,
+        type: "OnChain",
+        docHash: document_hash,
+        document: file.buffer,
+        documentType: documentType,
+        version: 1,
+        textHash: text_hash,
+        text: null,
+        age: timestamp,
+        verifyOnEAS: null,
+        dateCreated: timestamp,
+        lastModified: timestamp,
+        //world id verification
+        merkleRoot: merkle_root,
+        nullifierHash: nullifier_hash,
+        proof: proof,
+        verificationLevel: verification_level
+      })
+      .returning("*");
+
+      console.log("New Doc Attestation Recorded in DB: ",newAttestation);
+      return {
+        code: HTTP.Success,
+        body: {
+          message: "Doc Attestation Successfully attested."
+        }
+      };
+
+    } catch (err) {
+      Logger.error("user.service ->  addNewDocAttestation \n", err);
+      throw err;
+    }
+  },
+  myAttestations: async ( { user } ) => {
+    try {
+      let attestationData = await DB(AttestationModel.table).where({ email: user.email });
+      console.log("attestationData: ",attestationData);
+
+      if(attestationData.length == 0)
+      {
+        return {
+          code: HTTP.NotFound,
+          body: {
+            message: "User don't have any attesttions."
+          }
+        };
+      }
+      return {
+        code: HTTP.Success,
+        body: {
+          message: "User attestations data found successfully.",
+          attestationData: attestationData
+        }
+      };
+
+    } catch (err) {
+      Logger.error("user.service ->  myAttestations \n", err);
+      throw err;
+    }
+  },
+  allAttestations: async ( { user } ) => {
+    try {
+      let attestationData = await DB(AttestationModel.table);
+      console.log("attestationData: ",attestationData);
+
+      if(attestationData.length == 0)
+      {
+        return {
+          code: HTTP.NotFound,
+          body: {
+            message: "There are no attesttions found in the db."
+          }
+        };
+      }
+      return {
+        code: HTTP.Success,
+        body: {
+          message: "Attestations data found successfully.",
+          attestationData: attestationData
+        }
+      };
+
+    } catch (err) {
+      Logger.error("user.service ->  allAttestations \n", err);
+      throw err;
+    }
+  },
+  KPMGScan: async ( { user } ) => {
+    try {
+      let attestationData = await DB(AttestationModel.table).where({ schema: schemaUID });
+      console.log("attestationData: ",attestationData);
+
+      if(attestationData.length == 0)
+      {
+        return {
+          code: HTTP.NotFound,
+          body: {
+            message: "Schema don't have any attesttions."
+          }
+        };
+      }
+      return {
+        code: HTTP.Success,
+        body: {
+          message: "Schema attestations data found successfully.",
+          attestationData: attestationData
+        }
+      };
+
+    } catch (err) {
+      Logger.error("user.service ->  KPMGScan \n", err);
+      throw err;
+    }
+  },
+  search: async ( { attestations, UID, schema, address },{ user } ) => {
+    try {
+      
+      return {
+        code: HTTP.Success,
+        body: {
+          message: "searching..."
+        }
+      };
+
+    } catch (err) {
+      Logger.error("user.service ->  search \n", err);
+      throw err;
+    }
+  },
+};

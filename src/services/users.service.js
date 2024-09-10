@@ -121,6 +121,60 @@ module.exports = {
       throw err;
     }
   },
+  updateUser: async ( {firstName, lastName},{user} ) => {
+    try {
+
+      let userData = await DB(UserModel.table).where({ email: user.email });
+      console.log("userData: ",userData);
+
+      if(userData.length == 0)
+      {
+        return {
+          code: HTTP.NotFound,
+          body: {
+            message: "User don't exist against this email."
+          }
+        };
+      }
+
+      if( firstName != null && lastName != null)
+      {
+        userData = await DB(UserModel.table)
+        .where({ email: user.email })
+        .update({
+          firstName: firstName,
+          lastName: lastName
+        });
+      }
+      if(firstName != null)
+      {
+        userData = await DB(UserModel.table)
+        .where({ email: user.email })
+        .update({
+          firstName: firstName
+        });
+      }
+      if(lastName != null)
+      {
+        userData = await DB(UserModel.table)
+        .where({ email: user.email })
+        .update({
+          lastName: lastName
+        });
+      }
+
+      return {
+        code: HTTP.Success,
+        body: {
+          message: "User data has been updated successfully.",
+          user: userData[0]
+        }
+      };
+    } catch (err) {
+      Logger.error("user.service -> updateUser \n", err);
+      throw err;
+    }
+  },
   uploadDocToCreateHash: async ( file ) => {
     try {
       if (!file) {
@@ -166,5 +220,5 @@ module.exports = {
       Logger.error("user.service -> uploadTextToCreateHash \n", err);
       throw err;
     }
-  },
+  }
 };

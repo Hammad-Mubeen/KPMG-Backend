@@ -1,9 +1,9 @@
 const Response = require("../utils/response");
-const UserService = require("../services/users.service");
+const AttestationService = require("../services/attestations.service");
 
 module.exports = {
-  onboarding: function (req, res, next) {
-    UserService.onboarding(req.body, req)
+  addNewTextAttestation: function (req, res, next) {
+    AttestationService.addNewTextAttestation(req.body,req)
       .then((resp) => {
         return Response.Send.Raw(res, resp.code, resp.body);
       })
@@ -11,8 +11,8 @@ module.exports = {
         next(err);
       });
   },
-  getUser: function (req, res) {
-    UserService.getUser(req)
+  addNewDocAttestation: function (req, res, next) {
+    AttestationService.addNewDocAttestation(req.file,req.body,req)
       .then((resp) => {
         return Response.Send.Raw(res, resp.code, resp.body);
       })
@@ -20,8 +20,8 @@ module.exports = {
         next(err);
       });
   },
-  updateUser: function (req, res, next) {
-    UserService.updateUser(req.body, req)
+  search: function (req, res, next) {
+    AttestationService.search(req.body,req)
       .then((resp) => {
         return Response.Send.Raw(res, resp.code, resp.body);
       })
@@ -29,20 +29,8 @@ module.exports = {
         next(err);
       });
   },
-  convertDocumentToPdf: function (req, res, next) {
-    UserService.convertDocumentToPdf(req.file, req)
-      .then((resp) => {
-        // Set the response headers and pipe the PDF stream
-        res.setHeader('Content-Disposition', 'attachment; filename="converted.pdf"');
-        res.setHeader('Content-Type', 'application/pdf');
-        resp.pipe(res);
-      })
-      .catch((err) => {
-        next(err);
-      });
-  },
-  uploadDocToCreateHash: function (req, res, next) {
-    UserService.uploadDocToCreateHash(req.file, req)
+  myAttestations: function (req, res, next) {
+    AttestationService.myAttestations(req)
       .then((resp) => {
         return Response.Send.Raw(res, resp.code, resp.body);
       })
@@ -50,8 +38,17 @@ module.exports = {
         next(err);
       });
   },
-  uploadTextToCreateHash: function (req, res, next) {
-    UserService.uploadTextToCreateHash(req.body,req)
+  allAttestations: function (req, res, next) {
+    AttestationService.allAttestations(req)
+      .then((resp) => {
+        return Response.Send.Raw(res, resp.code, resp.body);
+      })
+      .catch((err) => {
+        next(err);
+      });
+  },
+  KPMGScan: function (req, res, next) {
+    AttestationService.KPMGScan(req)
       .then((resp) => {
         return Response.Send.Raw(res, resp.code, resp.body);
       })
