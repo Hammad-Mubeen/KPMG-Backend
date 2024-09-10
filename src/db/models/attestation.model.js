@@ -1,7 +1,7 @@
 const whitelist = require("../../utils/whitelist");
 
 module.exports = {
-  table: "users",
+  table: "attestations",
   whitelist: (data) =>
     whitelist(data, [
       "UID",
@@ -30,9 +30,9 @@ module.exports = {
       "dateCreated",
       "lastModified",
       //world id verification
-      "merkle_root",
-      "nullifier_hash",
+      "merkleRoot",
+      "nullifierHash",
       "proof",
-      "verification_level"
+      "verificationLevel"
     ]),
 };

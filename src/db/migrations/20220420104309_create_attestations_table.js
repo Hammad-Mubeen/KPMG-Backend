@@ -30,10 +30,10 @@ exports.up = async function (knex) {
     t.string("verifyOnEAS", 200).nullable();
     t.string("dateCreated").nullable();
     t.string("lastModified").nullable();
-    t.string("merkle_root", 200).nullable();
-    t.string("nullifier_hash", 200).nullable();
+    t.string("merkleRoot", 200).nullable();
+    t.string("nullifierHash", 200).nullable();
     t.string("proof", 200).nullable();
-    t.string("verification_level").nullable();
+    t.string("verificationLevel").nullable();
   });
 };
 
