@@ -22,7 +22,7 @@ module.exports = async (req, res, next) => {
           .first();
         if (!user) {
           return Response.Send.Unauthorized(res, {
-            message: "Unauthorized User.",
+            message: "User don't exists in the Database.",
           });
         }
         req.user = user;

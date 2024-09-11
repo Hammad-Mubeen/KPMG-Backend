@@ -10,8 +10,7 @@ const auth = require("../middlewares/auth");
 
 router
 
-  .post("/addNewTextAttestation", [auth, validate(attestationValidation.addNewTextAttestation)], attestationController.addNewTextAttestation)
-  .post("/addNewDocAttestation", [auth, multer.singleFile("file"),validate(attestationValidation.addNewDocAttestation)], attestationController.addNewDocAttestation)
+  .post("/addNewAttestation", [auth, multer.singleFile("file"),validate(attestationValidation.addNewAttestation)], attestationController.addNewAttestation)
   .post("/search", [auth, validate(attestationValidation.search)], attestationController.search)
   .get("/myAttestations", auth, attestationController.myAttestations)
   .get("/allAttestations", auth, attestationController.allAttestations)

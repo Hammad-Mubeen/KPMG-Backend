@@ -1,17 +1,11 @@
 const Joi = require("joi");
 
 module.exports = {
-  addNewTextAttestation: {
+  addNewAttestation: {
     body: Joi.object({
-      text: Joi.string().required(),
-      encodedData: Joi.string().required(),
-      signature: Joi.object().required()
-    })
-  },
-  addNewDocAttestation: {
-    body: Joi.object({
-      documentType: Joi.string().required(),
-      size: Joi.number().required(),
+      text: Joi.string(),
+      documentType: Joi.string(),
+      size: Joi.number(),
       encodedData: Joi.string().required(),
       signature: Joi.object().required()
     })
