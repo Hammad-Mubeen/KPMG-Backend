@@ -11,6 +11,24 @@ module.exports = {
         next(err);
       });
   },
+  compareDocument: function (req, res, next) {
+    AttestationService.compareDocument(req.file,req.body,req)
+      .then((resp) => {
+        return Response.Send.Raw(res, resp.code, resp.body);
+      })
+      .catch((err) => {
+        next(err);
+      });
+  },
+  inspect: function (req, res, next) {
+    AttestationService.inspect(req.body,req)
+      .then((resp) => {
+        return Response.Send.Raw(res, resp.code, resp.body);
+      })
+      .catch((err) => {
+        next(err);
+      });
+  },
   search: function (req, res, next) {
     AttestationService.search(req.body,req)
       .then((resp) => {

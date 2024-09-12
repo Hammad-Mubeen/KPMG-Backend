@@ -15,17 +15,6 @@ module.exports = {
 
   onboarding: async ({ token }) => {
     try {
-
-      if(!token)
-      {
-          return {
-            code: HTTP.NotFound,
-            body: {
-              message: "token have not been passed."
-            }
-          };
-      }
-      console.log("token: ",token);
       
       const magic = await Magic.init(process.env.MAGIC_SECRET_KEY);
       magic.token.validate(token);
@@ -69,7 +58,7 @@ module.exports = {
   },
   convertDocumentToPdf: async (file) => {
     try {
-      //console.log("file: ",file);
+      
       if (!file) {
         return {
           code: HTTP.BadRequest,
@@ -200,14 +189,6 @@ module.exports = {
   },
   uploadTextToCreateHash: async ( {text} ) => {
     try {
-      if (!text) {
-        return {
-          code: HTTP.BadRequest,
-          body: {
-            message: "text have not been passed."
-          }
-        };
-      }
       var hash = createHash('sha256').update(text).digest('hex');
       return {
         code: HTTP.Success,

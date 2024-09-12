@@ -18,4 +18,14 @@ module.exports = {
       address: Joi.string(),
     })
   },
+  compareDocument: {
+    body: Joi.object({
+      UID: Joi.string().required()
+    })
+  },
+  inspect: {
+    body: Joi.object({
+      UID: Joi.string().required()
+    })
+  },
 };

@@ -3,46 +3,27 @@ const DB = require("../db");
 const { SchemaEncoder } = require("@ethereum-attestation-service/eas-sdk");
 const moment = require('moment');
 const { v4: uuidv4 } = require("uuid");
+const { createHash } = require("crypto");
 
 const AttestationModel = require("../db/models/attestation.model");
 const UserModel = require("../db/models/user.model");
 
 const HTTP = require("../utils/httpCodes");
 const Logger = require("../utils/logger");
-const { fileUpload } = require("../utils/S3Config");
+const { fileUpload, getFile } = require("../utils/S3Config");
 const attestByDelegation = require("../utils/attestByDelegation");
 
 const schemaUID = process.env.SCHEMA_UID;
 const easAttestationURL = process.env.EAS_ATTESTATION_URL;
-const awsBucketBaseURL = process.env.AWS_BUCKET_BASE_URL;
 
 module.exports = {
 
-  addNewAttestation: async ( file, { documentType, size, text, encodedData, signature }, { user } ) => {
-    try {
-
-      if (!encodedData) {
-        return {
-          code: HTTP.NotFound,
-          body: {
-            message: "encodedData have not been passed."
-          }
-        };
-      }
-
-      if (!signature) {
-        return {
-          code: HTTP.NotFound,
-          body: {
-            message: "signature have not been passed."
-          }
-        };
-      }
+  addNewAttestation: async ( file, { documentType, size, text, encodedData, signature}, { user } ) => {
+    try { 
 
       //decoding data from encoded Data
       const schemaEncoder = new SchemaEncoder("string attestation_type,string title,string description,string[] tags,bytes32 document_hash,bytes32 text_hash,bytes merkle_root,bytes nullifier_hash,bytes proof,bytes verification_level");
       const decodedData = schemaEncoder.decodeData(encodedData);
-      console.log("decoded Data: ",decodedData);
 
       const attestation_type = decodedData[0].value.value,
       title = decodedData[1].value.value,
@@ -63,6 +44,50 @@ module.exports = {
             message: "Attestation type not supported."
           }
         };
+      }
+
+      if(attestation_type == "text")
+      {
+        if(!text)
+        {
+          return {
+            code: HTTP.NotFound,
+            body: {
+              message: "text have not been passed."
+            }
+          };
+        }
+      }
+
+      if(attestation_type == "doc")
+      {
+        if(!file)
+        {
+          return {
+            code: HTTP.NotFound,
+            body: {
+              message: "file have not been passed."
+            }
+          };
+        }
+        if(!size)
+        {
+          return {
+            code: HTTP.NotFound,
+            body: {
+              message: "size have not been passed."
+            }
+          };
+        }
+        if(!documentType)
+        {
+          return {
+            code: HTTP.NotFound,
+            body: {
+              message: "documentType have not been passed."
+            }
+          };
+        }  
       }
 
       // creating a attestation
@@ -115,7 +140,7 @@ module.exports = {
       }
       else if(attestation_type === "doc")
       {
-        const url = `Document/${uuidv4()}${moment().format("YYYY-MM-DDTHH:mm:ss")}`;
+        const url = `${uuidv4()}${moment().format("YYYY-MM-DDTHH:mm:ss")}`;
 
         await fileUpload(url, file.buffer, file.mimetype);
 
@@ -125,7 +150,7 @@ module.exports = {
           textHash: text_hash,
           text: null,
           docHash: document_hash,
-          document: `${awsBucketBaseURL}/${url}`,
+          document: `${url}`,
           documentType: documentType,
           size: size,
           version: 1,
@@ -144,7 +169,91 @@ module.exports = {
       };
 
     } catch (err) {
-      Logger.error("user.service ->  addNewAttestation \n", err);
+      Logger.error("attestation.service ->  addNewAttestation \n", err);
+      throw err;
+    }
+  },
+  compareDocument: async ( file, { UID },{ user } ) => {
+    try {
+      
+      if (!file) {
+        return {
+          code: HTTP.BadRequest,
+          body: {
+            message: "No file uploaded."
+          }
+        };
+      }
+
+      let attestationData = await DB(AttestationModel.table).where({ UID: UID });
+      
+      if(attestationData.length == 0)
+      {
+        return {
+          code: HTTP.NotFound,
+          body: {
+            message: "Attestation don't exist against this UID."
+          }
+        };
+      }
+
+      var hash = createHash('sha256').update(file.buffer).digest('hex');
+
+      let result = false;
+      if(("0x" + hash) === attestationData[0].docHash)
+      {
+        result = true;
+      }
+      return {
+        code: HTTP.Success,
+        body: {
+          message: "Document comparison Result!",
+          hash: hash,
+          documentComparisonResult: result
+        }
+      };
+
+
+    } catch (err) {
+      Logger.error("attestation.service ->  compareDocument\n", err);
+      throw err;
+    }
+  },
+  inspect: async ( { UID },{ user } ) => {
+    try {
+      let attestationData = await DB(AttestationModel.table).where({ UID: UID });
+      
+      if(attestationData.length == 0)
+      {
+        return {
+          code: HTTP.NotFound,
+          body: {
+            message: "Attestation don't exist against this UID."
+          }
+        };
+      }
+
+      let isUserAttestation= false;
+      if(attestationData[0].email == user.email)
+      {
+        console.log("This is user own attestation");
+        isUserAttestation = true;
+      }
+      else{
+        console.log("This is other user attestation");
+      }
+
+      return {
+        code: HTTP.Success,
+        body: {
+          message: "Attestation data found successfully.",
+          attestationData: attestationData[0],
+          isUserAttestation : isUserAttestation
+        }
+      };
+
+    } catch (err) {
+      Logger.error("attestation.service ->  inspect \n", err);
       throw err;
     }
   },
@@ -163,7 +272,7 @@ module.exports = {
       };
 
     } catch (err) {
-      Logger.error("user.service ->  myAttestations \n", err);
+      Logger.error("attestation.service ->  myAttestations \n", err);
       throw err;
     }
   },
@@ -182,7 +291,7 @@ module.exports = {
       };
 
     } catch (err) {
-      Logger.error("user.service ->  allAttestations \n", err);
+      Logger.error("attestation.service ->  allAttestations \n", err);
       throw err;
     }
   },
@@ -210,14 +319,14 @@ module.exports = {
       };
 
     } catch (err) {
-      Logger.error("user.service ->  KPMGScan \n", err);
+      Logger.error("attestation.service ->  KPMGScan \n", err);
       throw err;
     }
   },
   search: async ( { attestation, UID, schema, address },{ user } ) => {
     try {
       
-      let attestationData = null;
+      let attestationData = [];
       if(attestation != null)
       {
         attestationData = await DB(AttestationModel.table).where({ verifyOnEAS: attestation });
@@ -254,7 +363,7 @@ module.exports = {
 
 
     } catch (err) {
-      Logger.error("user.service ->  search \n", err);
+      Logger.error("attestation.service ->  search \n", err);
       throw err;
     }
   },

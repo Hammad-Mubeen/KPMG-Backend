@@ -1,5 +1,5 @@
 const S3 = require("aws-sdk/clients/s3");
-const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_BUCKET_NAME, AWS_BUCKET_BASE_URL } =
+const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_BUCKET_NAME } =
   process.env;
 
 const s3 = new S3({
@@ -18,13 +18,11 @@ module.exports = {
     const uploadedFile = s3.upload(params).promise();
     return uploadedFile;
   },
-  deleteFile: async (filename) => {
-    filename = filename.split(AWS_BUCKET_BASE_URL).pop();
+  getFile: async (filename) => {
     const params = {
       Bucket: AWS_BUCKET_NAME,
       Key: filename,
     };
-
-    return s3.deleteObject(params).promise();
+    return s3.getObject(params).promise();
   },
 };
