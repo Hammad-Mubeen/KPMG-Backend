@@ -7,7 +7,7 @@ const schemaUID = process.env.SCHEMA_UID;
 const privateKey = process.env.PRIVATE_KEY;
 const alchemyJSONRPC = process.env.ALCHEMY_JSON_RPC;
 
-const attestByDelegation = async ( encodedData, signature, user) => {
+const attestByDelegation = async ( encodedData, signature, user, refUID) => {
 
     const senderProvider = new ethers.JsonRpcProvider(alchemyJSONRPC);
     const sender = new ethers.Wallet(privateKey, senderProvider);
@@ -21,7 +21,7 @@ const attestByDelegation = async ( encodedData, signature, user) => {
         recipient: user.walletAddress,
         expirationTime: BigInt(0),
         revocable: true,
-        refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
+        refUID: refUID,
         data: encodedData
       },
       signature: signature,

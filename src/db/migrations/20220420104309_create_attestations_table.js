@@ -10,6 +10,7 @@ exports.up = async function (knex) {
     t.string("email", 200).notNull();
     t.string("creator", 200).notNull();
     t.string("recipient", 200).notNull();
+    t.boolean("parent").nullable();
     t.string("time", 200).notNull();
     t.string("expirationTime", 200).notNull();
     t.boolean("revocable").notNull();
@@ -24,6 +25,7 @@ exports.up = async function (knex) {
     t.string("document", 200).nullable();
     t.string("documentType", 50).nullable;
     t.integer("version").nullable();
+    t.boolean("latestVersion").nullable();
     t.string("textHash", 200).nullable();
     t.string("text").nullable();
     t.string("age").nullable();

@@ -18,7 +18,7 @@ const easAttestationURL = process.env.EAS_ATTESTATION_URL;
 
 module.exports = {
 
-  addNewAttestation: async ( file, { documentType, size, text, encodedData, signature}, { user } ) => {
+  addNewAttestation: async ( file, { documentType, size, text, refUID, encodedData, signature}, { user } ) => {
     try { 
 
       //decoding data from encoded Data
@@ -57,6 +57,15 @@ module.exports = {
             }
           };
         }
+        if(refUID != "0x0000000000000000000000000000000000000000000000000000000000000000")
+        {
+          return {
+            code: HTTP.BadRequest,
+            body: {
+              message: "Text attestation updation not supported."
+            }
+          };
+        }
       }
 
       if(attestation_type == "doc")
@@ -91,7 +100,7 @@ module.exports = {
       }
 
       // creating a attestation
-      const newAttestationUID = await attestByDelegation(encodedData, signature, user);
+      const newAttestationUID = await attestByDelegation(encodedData, signature, user, refUID);
       let timestamp = Math.floor(Date.now() / 1000);
 
       // creating record of the attestation
@@ -113,7 +122,7 @@ module.exports = {
         time: JSON.stringify(timestamp),
         expirationTime: JSON.stringify(0),
         age: moment.unix(timestamp).format("YYYY-MM-DDTHH:mm:ss"),
-        dateCreated: moment.unix(timestamp).format('MMM D, YYYY'),
+        dateCreated: moment.unix(timestamp).format('MMM D, YYYY [@] h:mm A'),
         lastModified: moment.unix(timestamp).format('MMM D, YYYY'),
         //world id verification
         merkleRoot: merkle_root,
@@ -132,11 +141,16 @@ module.exports = {
           text: text,
           docHash: document_hash,
           document: null,
-          documentType: null,
-          size: 0,
-          version: 0,
         })
         .returning("*");
+        console.log("New text type attestation recorded in DB: ",newAttestation);
+        return {
+          code: HTTP.Success,
+          body: {
+            message: "New text type attestation successfully attested.",
+            UID: newAttestationUID
+          }
+        };
       }
       else if(attestation_type === "doc")
       {
@@ -144,29 +158,62 @@ module.exports = {
 
         await fileUpload(url, file.buffer, file.mimetype);
 
-        newAttestation = await DB(AttestationModel.table)
-        .where({ UID: newAttestationUID })
-        .update({
-          textHash: text_hash,
-          text: null,
-          docHash: document_hash,
-          document: `${url}`,
-          documentType: documentType,
-          size: size,
-          version: 1,
-        })
-        .returning("*");
-      }
-
-      console.log("New Attestation Recorded in DB: ",newAttestation);
-
-      return {
-        code: HTTP.Success,
-        body: {
-          message: "Attestation Successfully attested.",
-          UID: newAttestationUID
+        if(refUID === "0x0000000000000000000000000000000000000000000000000000000000000000")
+        {
+          newAttestation = await DB(AttestationModel.table)
+          .where({ UID: newAttestationUID })
+          .update({
+            textHash: text_hash,
+            text: null,
+            docHash: document_hash,
+            document: `${url}`,
+            documentType: documentType,
+            size: size,
+            version: 1,
+            latestVersion: true,
+            parent: true
+          })
+          .returning("*");
+          console.log("New doc type attestation recorded in DB: ",newAttestation);
+          return {
+            code: HTTP.Success,
+            body: {
+              message: "New doc type attestation successfully attested.",
+              UID: newAttestationUID
+            }
+          };
         }
-      };
+        else{
+          let refAttestation = await DB(AttestationModel.table)
+          .where({ UID: refUID })
+          .update({latestVersion: false})
+          .returning("*");
+
+          
+          newAttestation = await DB(AttestationModel.table)
+          .where({ UID: newAttestationUID })
+          .update({
+            textHash: text_hash,
+            text: null,
+            docHash: document_hash,
+            document: `${url}`,
+            documentType: documentType,
+            size: size,
+            version: (refAttestation[0].referringAttestations.length) + 1,
+            latestVersion: true,
+            parent: false
+          })
+          .returning("*");
+          console.log("Doc type attestation updation recorded in DB: ",newAttestation);
+          return {
+            code: HTTP.Success,
+            body: {
+              message: "Doc type attestation updation successfully attested.",
+              UID: newAttestationUID
+            }
+          };
+        }  
+      }
 
     } catch (err) {
       Logger.error("attestation.service ->  addNewAttestation \n", err);
@@ -254,6 +301,94 @@ module.exports = {
 
     } catch (err) {
       Logger.error("attestation.service ->  inspect \n", err);
+      throw err;
+    }
+  },
+  getAttestationVersions: async ( { UID } ) => {
+    try {
+      let attestationData = await DB(AttestationModel.table).where({ UID: UID }).select("referringAttestations");
+      if(attestationData.length == 0)
+      {
+        return {
+          code: HTTP.NotFound,
+          body: {
+            message: "Attestation don't exist against this UID."
+          }
+        };
+      }
+      if (attestationData.parent === false)
+      {
+        return {
+          code: HTTP.BadRequest,
+          body: {
+            message: "You can only getAttestation by version if you provide parent attestation UID."
+          }
+        };
+      }
+
+      return {
+        code: HTTP.Success,
+        body: {
+          message: "Referring attestations data found successfully.",
+          attestationData: attestationData
+        }
+      };
+
+    } catch (err) {
+      Logger.error("attestation.service ->  getAttestationVersions \n", err);
+      throw err;
+    }
+  },
+  getAttestationByVersion: async ( { UID, version }) => {
+    try {
+      let attestationData = await DB(AttestationModel.table).where({ UID: UID });
+      if(attestationData.length == 0)
+      {
+        return {
+          code: HTTP.NotFound,
+          body: {
+            message: "Attestation don't exist against this UID."
+          }
+        };
+      }
+      if (attestationData.parent === false)
+      {
+        return {
+          code: HTTP.BadRequest,
+          body: {
+            message: "You can only getAttestation by version if you provide parent attestation UID."
+          }
+        };
+      }
+      
+      let requiredUID = null;
+      for (i = 0; i < attestationData[0].referringAttestations.length; i++)
+      {
+        if(attestationData[0].referringAttestations[i].version === version )
+        {
+          requiredUID = attestationData[0].referringAttestations[i].UID;
+          break;
+        }
+      }
+
+      if(requiredUID != null)
+      {
+        attestationData = await DB(AttestationModel.table).where({ UID: requiredUID });
+      }
+      else{
+        attestationData = [];
+      }
+
+      return {
+        code: HTTP.Success,
+        body: {
+          message: "Attestation data found successfully.",
+          attestationData: attestationData
+        }
+      };
+
+    } catch (err) {
+      Logger.error("attestation.service ->   getAttestationByVersion \n", err);
       throw err;
     }
   },
